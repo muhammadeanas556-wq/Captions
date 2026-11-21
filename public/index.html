@@ -35,7 +35,9 @@ label{display:block;margin:8px 0 3px;color:var(--m);font-size:12px}.two{display:
  <div class="col"><div class="sg" id="styles"></div><div id="ctl"></div></div></div>
 <div id="toast"></div>
 <script>
-const $=s=>document.querySelector(s),api=async(u,o)=>{const r=await fetch(u,o);const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j};
+const $=s=>document.querySelector(s),api=async(u,o)=>{let r,t;try{r=await fetch(u,o);t=await r.text()}catch{throw new Error('Server se connect nahi ho paya. Check karo ki backend (npm start) chal raha hai.')}
+let j;try{j=JSON.parse(t)}catch{throw new Error('Backend nahi mila (HTTP '+r.status+'). Ye site Netlify jaisi static hosting par hai; Node backend chahiye. README dekho.')}
+if(!r.ok)throw new Error(j.error||'Request failed');return j};
 let P,STY,mode='full',sv;const err=e=>{const t=$('#toast');t.textContent=e.message||e;t.style.display='block';setTimeout(()=>t.style.display='none',5000)};
 const segs=()=>mode==='full'?P.segments:P.important,fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 const save=()=>{clearTimeout(sv);sv=setTimeout(()=>api('/api/projects/'+P.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(P)}).catch(err),500)};
