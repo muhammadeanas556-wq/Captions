@@ -16,6 +16,7 @@ const load = id => JSON.parse(fs.readFileSync(pf(id)));
 const save = p => fs.writeFileSync(pf(p.id), JSON.stringify(p));
 const probe = f => JSON.parse(execFileSync('ffprobe',['-v','error','-print_format','json','-show_streams','-show_format',f]).toString());
 
+app.get('/api/health',(_,r)=>r.json({ok:true,gemini:!!KEY}));
 app.get('/api/styles', (_,r)=>r.json(STYLES));
 app.get('/api/projects', (_,r)=>r.json(fs.readdirSync(`${D}/projects`).map(f=>{const p=JSON.parse(fs.readFileSync(`${D}/projects/${f}`));return {id:p.id,name:p.name,created:p.created,duration:p.duration,status:p.status,thumb:p.thumb};}).sort((a,b)=>b.created-a.created)));
 app.get('/api/projects/:id', (q,r)=>fs.existsSync(pf(q.params.id))?r.json(load(q.params.id)):r.status(404).json({error:'Not found'}));
