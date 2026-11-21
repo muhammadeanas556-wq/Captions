@@ -1,0 +1,94 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Captionly</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;800;900&family=Poppins:wght@500;700;800&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0e12;--p:#15171d;--b:#262a33;--t:#e8eaf0;--m:#8b91a1;--a:#7c6cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px Inter,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}button{background:var(--p);border:1px solid var(--b);border-radius:8px;padding:7px 12px;cursor:pointer}button:hover{border-color:var(--a)}button.pri{background:var(--a);border-color:var(--a)}button:disabled{opacity:.5}
+input,select,textarea{background:#0b0c10;border:1px solid var(--b);border-radius:6px;padding:6px 8px;width:100%}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--b)}h1{font-size:17px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:20px}
+.card{background:var(--p);border:1px solid var(--b);border-radius:12px;overflow:hidden}.card img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;cursor:pointer}.card div{padding:10px}.m{color:var(--m);font-size:12px}
+#ed{display:none;height:calc(100vh - 53px);grid-template-columns:320px 1fr 300px}
+.col{overflow:auto;padding:12px;border-right:1px solid var(--b)}.col:last-child{border:0;border-left:1px solid var(--b)}
+.stage{display:flex;flex-direction:column;align-items:center;padding:12px;gap:10px;overflow:auto}
+.vw{position:relative;height:min(68vh,640px);aspect-ratio:var(--ar,9/16);max-width:100%;background:#000;border-radius:10px;overflow:hidden;container-type:size}
+.vw video{width:100%;height:100%;display:block}#cap{position:absolute;left:0;right:0;text-align:center;pointer-events:none;padding:0 6%;transform:translateY(-50%)}
+#cap span.box{display:inline-block;padding:.28em .55em;line-height:1.25}
+.seg{border:1px solid var(--b);border-radius:8px;padding:8px;margin-bottom:8px}.seg.on{border-color:var(--a)}.seg textarea{height:46px;resize:vertical}
+.row{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}.row input[type=number]{width:70px}
+.w{display:inline-block;padding:1px 5px;margin:1px;border-radius:4px;background:#222632;cursor:pointer;font-size:12px}.w.k{background:var(--a)}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}.sg button{font-size:12px;padding:8px 4px}.sg button.on{border-color:var(--a);background:#1f1c3d}
+label{display:block;margin:8px 0 3px;color:var(--m);font-size:12px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#tl{width:100%;height:46px;position:relative;background:var(--p);border:1px solid var(--b);border-radius:8px;cursor:pointer}#tl i{position:absolute;top:8px;height:28px;background:#3a3470;border-radius:4px;opacity:.9}#ph{position:absolute;top:0;bottom:0;width:2px;background:#ff5a7a}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#2a1620;border:1px solid #6b2a40;padding:10px 16px;border-radius:8px;display:none;max-width:90vw}
+@media(max-width:900px){#ed{grid-template-columns:1fr;height:auto}.col{border:0;max-height:none}.stage{order:-1}}
+</style></head><body>
+<header><h1>🎬 Captionly</h1><div><button id="home" style="display:none">← Projects</button> <label class="pri" style="display:inline-block;margin:0"><input id="file" type="file" accept=".mp4,.mov,.webm,video/*" hidden><span class="pri" style="background:var(--a);padding:8px 14px;border-radius:8px;cursor:pointer;color:#fff">+ Upload video</span></label></div></header>
+<div id="dash"><div class="grid" id="list"></div></div>
+<div id="ed">
+ <div class="col"><div class="row"><button id="tr" class="pri">Generate captions</button><button id="imp">Important only</button></div>
+  <div class="row"><button id="mFull" class="on">Full</button><button id="mImp">Important</button><span class="m" id="st"></span></div>
+  <div class="row"><input id="fi" placeholder="Find"><input id="re" placeholder="Replace"><button id="rb">Go</button></div><div id="segs" style="margin-top:10px"></div></div>
+ <div class="stage"><input id="nm" style="max-width:360px;text-align:center"><div class="vw" id="vw"><video id="v" playsinline controls></video><div id="cap"></div></div><div id="tl"><div id="ph"></div></div>
+  <div class="row"><span id="tm" class="m">0:00</span><button id="split">Split at playhead</button><select id="res" style="width:auto"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="2160">4K</option></select><button class="pri" id="exp">Export video</button><span id="rp" class="m"></span></div>
+  <div class="row"><button data-f="srt">SRT</button><button data-f="vtt">VTT</button><button data-f="txt">TXT</button></div></div>
+ <div class="col"><div class="sg" id="styles"></div><div id="ctl"></div></div></div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),api=async(u,o)=>{const r=await fetch(u,o);const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j};
+let P,STY,mode='full',sv;const err=e=>{const t=$('#toast');t.textContent=e.message||e;t.style.display='block';setTimeout(()=>t.style.display='none',5000)};
+const segs=()=>mode==='full'?P.segments:P.important,fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+const save=()=>{clearTimeout(sv);sv=setTimeout(()=>api('/api/projects/'+P.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(P)}).catch(err),500)};
+async function dash(){$('#ed').style.display='none';$('#dash').style.display='';$('#home').style.display='none';const l=await api('/api/projects');
+ $('#list').innerHTML=l.length?'':'<p class="m">No projects yet. Upload a video to begin.</p>';
+ l.forEach(p=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="${p.thumb}"><div><b>${p.name}</b><div class="m">${fmt(p.duration)} · ${new Date(p.created).toLocaleDateString()} · ${p.status}</div><div class="row"><button>Rename</button><button>Delete</button></div></div>`;
+  const[b1,b2]=c.querySelectorAll('button');c.querySelector('img').onclick=()=>open(p.id);
+  b1.onclick=async()=>{const n=prompt('Name',p.name);if(n){await api('/api/projects/'+p.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})});dash()}};
+  b2.onclick=async()=>{if(confirm('Delete project?')){await api('/api/projects/'+p.id,{method:'DELETE'});dash()}};$('#list').append(c)})}
+$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('video',f);$('#list').innerHTML='<p class="m">Uploading…</p>';try{const p=await api('/api/upload',{method:'POST',body:fd});open(p.id)}catch(x){err(x);dash()}e.target.value=''};
+async function open(id){P=await api('/api/projects/'+id);STY=STY||await api('/api/styles');$('#dash').style.display='none';$('#ed').style.display='grid';$('#home').style.display='';
+ $('#vw').style.setProperty('--ar',P.w+'/'+P.h);$('#v').src='/media/'+P.file;$('#nm').value=P.name;mode='full';sty();ctl();list();modeUI()}
+$('#home').onclick=dash;$('#nm').onchange=e=>{P.name=e.target.value;save()};
+function modeUI(){$('#mFull').classList.toggle('on',mode==='full');$('#mImp').classList.toggle('on',mode!=='full');$('#st').textContent=P.hasAudio?'':'no audio'}
+$('#mFull').onclick=()=>{mode='full';modeUI();list()};$('#mImp').onclick=()=>{mode='imp';modeUI();list()};
+$('#tr').onclick=async e=>{e.target.disabled=true;e.target.textContent='Transcribing…';try{P=await api(`/api/projects/${P.id}/transcribe`,{method:'POST'});list()}catch(x){err(x)}e.target.disabled=false;e.target.textContent='Generate captions'};
+$('#imp').onclick=async e=>{e.target.disabled=true;e.target.textContent='Working…';try{P=await api(`/api/projects/${P.id}/important`,{method:'POST'});mode='imp';modeUI();list()}catch(x){err(x)}e.target.disabled=false;e.target.textContent='Important only'};
+const reflow=g=>{const ws=g.text.split(/\s+/).filter(Boolean),tot=ws.reduce((a,w)=>a+w.length+1,0);let t=g.start;g.words=ws.map(w=>{const d=(g.end-g.start)*(w.length+1)/tot,o={w,s:t,e:t+d,est:true,k:(g.words.find(x=>x.w===w)||{}).k};t+=d;return o})};
+function list(){const el=$('#segs');el.innerHTML='';segs().forEach((g,i)=>{const d=document.createElement('div');d.className='seg';d.id='s'+g.id;
+ d.innerHTML=`<textarea>${g.text}</textarea><div>${g.words.map((w,j)=>`<span class="w ${w.k?'k':''}" data-j="${j}">${w.w}</span>`).join('')}</div><div class="row"><input type=number step=.1 value="${g.start.toFixed(2)}"><input type=number step=.1 value="${g.end.toFixed(2)}"><button>Merge ↓</button><button>🗑</button></div>`;
+ const[ta]=d.querySelectorAll('textarea'),[a,b]=d.querySelectorAll('input'),[mg,dl]=d.querySelectorAll('button');
+ ta.onchange=()=>{g.text=ta.value;reflow(g);save();list()};a.onchange=()=>{g.start=+a.value;reflow(g);save()};b.onchange=()=>{g.end=+b.value;reflow(g);save()};
+ d.querySelectorAll('.w').forEach(s=>s.onclick=()=>{g.words[s.dataset.j].k=!g.words[s.dataset.j].k;save();s.classList.toggle('k')});
+ mg.onclick=()=>{const n=segs()[i+1];if(!n)return;g.text+=' '+n.text;g.end=n.end;g.words=[...g.words,...n.words];segs().splice(i+1,1);reflow(g);save();list()};
+ dl.onclick=()=>{segs().splice(i,1);save();list()};ta.onfocus=()=>{$('#v').currentTime=g.start};$('#segs').append(d)});tl()}
+$('#rb').onclick=()=>{const f=$('#fi').value;if(!f)return;segs().forEach(g=>{if(g.text.includes(f)){g.text=g.text.split(f).join($('#re').value);reflow(g)}});save();list()};
+$('#split').onclick=()=>{const t=$('#v').currentTime,i=segs().findIndex(g=>t>g.start&&t<g.end);if(i<0)return err('Move the playhead inside a caption');const g=segs()[i],L=g.words.filter(w=>w.s<t),R=g.words.filter(w=>w.s>=t);
+ if(!L.length||!R.length)return err('Playhead must fall between words');const n={id:crypto.randomUUID(),start:R[0].s,end:g.end,text:R.map(w=>w.w).join(' '),words:R};g.end=R[0].s;g.text=L.map(w=>w.w).join(' ');g.words=L;segs().splice(i+1,0,n);save();list()};
+function tl(){const e=$('#tl');e.querySelectorAll('i').forEach(x=>x.remove());segs().forEach(g=>{const i=document.createElement('i');i.style.left=g.start/P.duration*100+'%';i.style.width=Math.max(.4,(g.end-g.start)/P.duration*100)+'%';e.append(i)})}
+$('#tl').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();$('#v').currentTime=(e.clientX-r.left)/r.width*P.duration};
+// styles + controls
+function sty(){$('#styles').innerHTML='';Object.entries(STY).forEach(([k,s])=>{const b=document.createElement('button');b.textContent=s.name;b.className=P.styleKey===k?'on':'';b.onclick=()=>{P.styleKey=k;P.style={...s};save();sty();ctl()};$('#styles').append(b)})}
+const F=[['font','Font',['Montserrat','Poppins','Inter','Playfair Display']],['size','Size',20,120],['weight','Weight',[400,500,700,800,900]],['color','Text color','c'],['upcoming','Upcoming word color','c'],['hl','Keyword color','c'],['boxColor','Box color','c'],['boxOpacity','Box opacity',0,1,.05],['outline','Outline',0,12],['shadow','Shadow',0,8],['radius','Corner radius',0,40],['y','Vertical position %',10,95],['anim','Animation',['pop','bounce','slide-up','fade','blur','scale']]];
+function ctl(){const el=$('#ctl');el.innerHTML='';F.forEach(([k,l,a,b,s])=>{const w=document.createElement('div');let i;if(Array.isArray(a)){i=document.createElement('select');a.forEach(o=>i.add(new Option(o,o)))}else{i=document.createElement('input');if(a==='c')i.type='color';else{i.type='range';i.min=a;i.max=b;i.step=s||1}}
+ i.value=P.style[k];i.oninput=()=>{P.style[k]=i.type==='range'?+i.value:i.value;save()};w.innerHTML=`<label>${l}</label>`;w.append(i);el.append(w)});
+ [['box','Background box'],['karaoke','Word-by-word highlight'],['caps','UPPERCASE']].forEach(([k,l])=>{const w=document.createElement('label');w.innerHTML=`<input type=checkbox style="width:auto" ${P.style[k]?'checked':''}> ${l}`;w.firstChild.onchange=e=>{P.style[k]=e.target.checked;save()};el.append(w)})}
+// live preview (same style data as the export)
+const hex=(h,o)=>{const n=parseInt(h.slice(1),16);return`rgba(${n>>16},${n>>8&255},${n&255},${o})`};
+const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
+function frame(){requestAnimationFrame(frame);if(!P)return;const v=$('#v'),t=v.currentTime,c=$('#cap'),s=P.style;$('#tm').textContent=fmt(t)+' / '+fmt(P.duration);$('#ph').style.left=t/P.duration*100+'%';
+ const g=segs().find(g=>t>=g.start&&t<=g.end);document.querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',g&&x.id==='s'+g.id));
+ if(!g){c.innerHTML='';return}const k=ease((t-g.start)/.2),fo=Math.min(1,(g.end-t)/.12),fs=s.size/1280*100;
+ c.style.top=s.y+'%';c.style.fontFamily=s.font;c.style.fontWeight=s.weight;c.style.fontSize=fs+'cqh';c.style.opacity=Math.min(1,k*2,fo);
+ c.style.transform=`translateY(-50%) ${s.anim==='slide-up'?`translateY(${(1-k)*1.5}cqh)`:''} scale(${['pop','bounce','scale'].includes(s.anim)?.8+.2*k:1})`;c.style.filter=s.anim==='blur'?`blur(${(1-k)*8}px)`:'';
+ const sh=[];if(s.outline){const o=s.outline*(1280/1280)*.5;for(const[x,y]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]])sh.push(`${x*o}px ${y*o}px 0 #000`)}if(s.shadow)sh.push(`0 ${s.shadow}px ${s.shadow*2}px rgba(0,0,0,.6)`);
+ const bx=s.box?`background:${hex(s.boxColor,s.boxOpacity)};border-radius:${s.radius}px;`:'';
+ c.innerHTML=`<span class="${s.box?'box':''}" style="${bx}text-shadow:${s.box?'none':sh.join(',')||'none'}">${g.words.map(w=>{const spoken=!s.karaoke||t>=w.s;const col=w.k?s.hl:(spoken?s.color:s.upcoming);return`<span style="color:${col}">${s.caps?w.w.toUpperCase():w.w}</span>`}).join(' ')}</span>`}
+frame();
+// downloads
+const ts=(t,c)=>{const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=(t%60).toFixed(3).padStart(6,'0');return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${s}`.replace('.',c)};
+document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const f=b.dataset.f,S=segs();let o=f==='vtt'?'WEBVTT\n\n':'';o+=S.map((g,i)=>f==='txt'?g.text:`${f==='srt'?i+1+'\n':''}${ts(g.start,f==='srt'?',':'.')} --> ${ts(g.end,f==='srt'?',':'.')}\n${g.text}\n`).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([o]));a.download=P.name+'.'+f;a.click()});
+$('#exp').onclick=async()=>{try{await api(`/api/projects/${P.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(P)});const{job}=await api(`/api/projects/${P.id}/render`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:mode==='full'?'full':'important',height:$('#res').value})});
+ $('#exp').disabled=true;const iv=setInterval(async()=>{const j=await api('/api/render/'+job);$('#rp').textContent=j.status==='running'?Math.round(j.progress*100)+'%':'';if(j.status!=='running'){clearInterval(iv);$('#exp').disabled=false;if(j.status==='done'){const a=document.createElement('a');a.href=j.url;a.download=P.name+'_captioned.mp4';a.click()}else err(j.error)}},800)}catch(x){err(x)}};
+dash();
+</script></body></html>
