@@ -41,7 +41,8 @@ if(!r.ok)throw new Error(j.error||'Request failed');return j};
 let P,STY,mode='full',sv;const err=e=>{const t=$('#toast');t.textContent=e.message||e;t.style.display='block';setTimeout(()=>t.style.display='none',5000)};
 const segs=()=>mode==='full'?P.segments:P.important,fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 const save=()=>{clearTimeout(sv);sv=setTimeout(()=>api('/api/projects/'+P.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(P)}).catch(err),500)};
-async function dash(){$('#ed').style.display='none';$('#dash').style.display='';$('#home').style.display='none';const l=await api('/api/projects');
+async function dash(){$('#ed').style.display='none';$('#dash').style.display='';$('#home').style.display='none';let l;
+ try{l=await api('/api/projects')}catch(x){$('#list').innerHTML='<div class="card" style="grid-column:1/-1;padding:16px"><b>Backend se connect nahi ho paya</b><p class="m">'+x.message+'</p><p class="m">Ye app Netlify par nahi chalta. PC par <code>npm start</code> chalao ya Render/Railway par Dockerfile se deploy karo, phir wahi link kholo.</p></div>';return}
  $('#list').innerHTML=l.length?'':'<p class="m">No projects yet. Upload a video to begin.</p>';
  l.forEach(p=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="${p.thumb}"><div><b>${p.name}</b><div class="m">${fmt(p.duration)} · ${new Date(p.created).toLocaleDateString()} · ${p.status}</div><div class="row"><button>Rename</button><button>Delete</button></div></div>`;
   const[b1,b2]=c.querySelectorAll('button');c.querySelector('img').onclick=()=>open(p.id);
